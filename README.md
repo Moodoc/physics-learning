@@ -1,6 +1,8 @@
 # 物理学习项目
 
-这是一个与 AI 协作的物理学习工作区。目标是在约 18 个月、每周约 8 小时的节奏下，完成共同基础、量子与统计基础以及三个方向的试学，最终选择一个主方向和一个辅助方向。
+这是一个与 AI 协作的物理学习工作区。目标是在约 18 个月、每周约 8 小时的节奏下，以物理问题牵引数学和 Python 建模，在达到具体能力门槛后进入量子与统计基础，并完成三个方向的试学，最终选择一个主方向和一个辅助方向。
+
+路线采用螺旋并行模式：数学工具与对应的物理问题一起学习，量子直觉可以提前预览，但正式量子训练和量子统计仍受明确先修门槛约束。
 
 ## 从哪里开始
 
@@ -20,9 +22,9 @@
 ## 路线文件
 
 - [总览与推进规则](roadmap/index.md)
-- [基线诊断、数学与物理建模](roadmap/01-math-modeling.md)
-- [共同物理基础](roadmap/02-core-physics.md)
-- [量子与统计基础](roadmap/03-quantum-statistical.md)
+- [基线诊断、运动与线性系统](roadmap/01-motion-linear-systems.md)
+- [场与波](roadmap/02-fields-waves.md)
+- [概率、热与量子](roadmap/03-thermal-quantum.md)
 - [三方向试学](roadmap/04-direction-trials.md)
 - [选定方向后的衔接](roadmap/05-post-selection.md)
 
