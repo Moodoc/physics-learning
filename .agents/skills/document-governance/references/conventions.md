@@ -75,7 +75,7 @@ Codex 按项目根目录到当前工作目录组成指令链；子目录指令�
 在项目根目录执行：
 
 ```powershell
-pwsh -NoProfile -File scripts/check-docs.ps1
+pwsh -NoProfile -File .agents/skills/document-governance/scripts/check-docs.ps1
 ```
 
 检查器验证文件预算、AGENTS 指令链、一级标题、仓库内相对链接，以及真实学习单的前置字段、状态和必需章节。`NOTICE` 和 `WARN` 不影响退出码；`ERROR` 会使检查返回非零状态。

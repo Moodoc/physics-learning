@@ -29,7 +29,3 @@
 - [选定方向后的衔接](roadmap/05-post-selection.md)
 
 路线按能力门槛推进，周数只是建议节奏。18 个月结束时的目标是完成方向选择；论文拆解与简化复现属于下一周期。
-
-## 项目维护
-
-创建或重组项目文档时，遵循[文档组织与长度规范](docs/document-conventions.md)。规范检查可通过 `pwsh -NoProfile -File scripts/check-docs.ps1` 执行。
