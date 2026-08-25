@@ -1,57 +1,57 @@
 ---
 name: git-learning-checkpoint
-description: Evaluate completed work in this physics-learning repository and create a scoped Git commit when a reviewable checkpoint is ready. Use after a learning session is reviewed, a roadmap or state update is complete, a project artifact is verified, or the user asks to commit. Do not use for incomplete work, failed validation, pushing, or unrelated changes.
+description: 在本物理学习仓库中评估已完成工作，并在形成可审核检查点时创建范围明确的 Git 提交。适用于学习单完成批阅、路线或状态更新完成、项目成果验证通过，或用户要求提交的情况；未完成、验证失败、需要推送或包含无关改动时不使用。
 ---
 
-# Git Learning Checkpoint
+# Git 学习检查点
 
-Create one reviewable Git commit for one completed unit of work. The repository's `AGENTS.md` supplies the standing authorization and commit conditions; this skill supplies the execution workflow.
+为一个已完成的工作单元创建一个可审核的 Git 提交。仓库 `AGENTS.md` 提供长期有效的授权和提交条件，本技能规定具体执行流程。
 
-## Decide Whether to Commit
+## 判断是否提交
 
-Commit only when all of these are true:
+仅在以下条件全部满足时提交：
 
-- The current task has a coherent, completed outcome.
-- Relevant validation has passed, or the repository has no applicable automated check and that limitation is reported.
-- The exact files belonging to the task can be identified.
-- The staged result contains no secrets, credentials, unintended large files, caches, or unrelated edits.
+- 当前任务已形成完整且一致的成果。
+- 相关验证已经通过；若仓库没有适用的自动检查，已明确报告该限制。
+- 能准确识别属于当前任务的文件。
+- 暂存结果不包含秘密、凭据、意外的大文件、缓存或无关改动。
 
-Do not commit incomplete learning sessions in `planned` or `submitted` state. Do not commit when validation fails, task ownership is unclear, or the intended change would need to be mixed with unrelated work.
+不得提交状态仍为 `planned` 或 `submitted` 的未完成学习单。验证失败、改动归属不清，或目标改动必须与无关工作混合时，不得提交。
 
-If the repository has no existing commit, a complete and verified project baseline may be committed once as an initialization checkpoint. Confirm every included file belongs in that baseline.
+如果仓库尚无任何提交，可以将完整且已验证的项目基线作为一次初始化检查点提交，但必须确认其中每个文件都属于该基线。
 
-## Prepare the Checkpoint
+## 准备检查点
 
-1. Inspect `git status --short --branch`, unstaged changes, staged changes, and untracked files.
-2. Identify the current task's exact file set. Preserve all other worktree changes.
-3. Run the checks required by `AGENTS.md` and the changed file types. For Markdown, verify local links and required structure. For code, use the repository's existing lint, typecheck, test, or targeted execution commands.
-4. Inspect candidate files for credentials, private data, generated caches, and unexpectedly large binaries.
-5. Stage only explicit task paths with `git add -- <paths>`. Never use a broad staging command when unrelated changes exist.
-6. Review `git diff --cached --name-status`, `git diff --cached`, and `git diff --cached --check`. Stop if the staged diff is empty or contains anything outside the task.
+1. 检查 `git status --short --branch`、未暂存改动、已暂存改动和未跟踪文件。
+2. 准确识别当前任务的文件集合，保留工作区中的所有其他改动。
+3. 执行 `AGENTS.md` 和改动文件类型要求的检查。Markdown 文件需验证本地链接和必需结构；代码需使用仓库已有的格式检查、类型检查、测试或针对性运行命令。
+4. 检查候选文件中是否包含凭据、隐私数据、生成缓存或异常大的二进制文件。
+5. 仅使用 `git add -- <paths>` 暂存明确属于任务的路径。存在无关改动时，禁止使用宽泛的暂存命令。
+6. 审核 `git diff --cached --name-status`、`git diff --cached` 和 `git diff --cached --check`。暂存差异为空或包含任务范围外内容时停止提交。
 
-## Write the Commit Message
+## 编写提交信息
 
-Use Conventional Commit format:
+使用 Conventional Commits 格式：
 
 ```text
-<type>(<scope>): <concise Chinese summary>
+<类型>(<作用域>): <简洁中文摘要>
 ```
 
-Choose the narrowest suitable type and scope:
+选择范围最窄且合适的类型和作用域：
 
-- `docs(session)`: reviewed learning-session content.
-- `docs(roadmap)`: learning-route changes.
-- `docs(state)`: learner profile or current-state changes.
-- `feat(project)`: a new runnable physics project or capability.
-- `fix(project)`: a correction to a project model or result.
-- `chore(repo)`: repository configuration or an initial baseline.
+- `docs(session)`：已完成批阅的学习单内容。
+- `docs(roadmap)`：学习路线调整。
+- `docs(state)`：学习者档案或当前状态调整。
+- `feat(project)`：新增可运行的物理项目或能力。
+- `fix(project)`：修正项目模型或结果。
+- `chore(repo)`：仓库配置或初始化基线。
 
-Keep one logical purpose per commit. Add a body only when the motivation, verification, or compatibility impact is not clear from the subject.
+每个提交只包含一个逻辑目的。仅在标题无法说明动机、验证情况或兼容性影响时添加正文。
 
-## Commit and Report
+## 提交并报告
 
-1. Run `git commit` with the reviewed message.
-2. Verify the result with `git status --short --branch` and `git show --stat --oneline HEAD`.
-3. Report the commit hash, exact message, validation performed, and any remaining uncommitted paths.
+1. 使用审核后的提交信息运行 `git commit`。
+2. 使用 `git status --short --branch` 和 `git show --stat --oneline HEAD` 验证结果。
+3. 报告提交哈希、完整提交信息、已执行的验证，以及剩余未提交路径。
 
-Never run `git push` under this skill.
+本技能绝不执行 `git push`。
