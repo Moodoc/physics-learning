@@ -1,0 +1,4 @@
+interface:
+  display_name: "Git 学习检查点"
+  short_description: "审核已完成的物理学习成果，并创建范围明确、可回滚的 Git 检查点提交"
+  default_prompt: "使用 $git-learning-checkpoint 审核当前已完成工作并创建范围明确的 Git 提交。"

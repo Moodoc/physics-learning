@@ -234,6 +234,59 @@ function Test-AgentChains {
     }
 }
 
+function Test-ProjectSkills {
+    param([string]$RootPath)
+
+    $skillsRoot = Join-Path $RootPath '.agents\skills'
+    if (-not (Test-Path -LiteralPath $skillsRoot -PathType Container)) {
+        return
+    }
+
+    foreach ($skillDirectory in (Get-ChildItem -LiteralPath $skillsRoot -Directory)) {
+        $skillName = $skillDirectory.Name
+        $skillFile = Join-Path $skillDirectory.FullName 'SKILL.md'
+        $metadataFile = Join-Path $skillDirectory.FullName 'agents\openai.yaml'
+
+        if (-not (Test-Path -LiteralPath $skillFile -PathType Leaf)) {
+            Write-CheckMessage -Level 'ERROR' -Code 'SKILL' -Message ".agents/skills/$skillName 缺少 SKILL.md。"
+        }
+
+        if (-not (Test-Path -LiteralPath $metadataFile -PathType Leaf)) {
+            Write-CheckMessage -Level 'ERROR' -Code 'SKILL_METADATA' -Message ".agents/skills/$skillName 缺少 agents/openai.yaml。"
+            continue
+        }
+
+        $metadata = [System.IO.File]::ReadAllText($metadataFile)
+        $defaultPrompt = $null
+        foreach ($field in @('display_name', 'short_description', 'default_prompt')) {
+            $fieldPattern = '(?m)^\s{2}' + [regex]::Escape($field) + '\s*:\s*["''](?<value>.+)["'']\s*$'
+            $fieldMatch = [regex]::Match($metadata, $fieldPattern)
+            if (-not $fieldMatch.Success) {
+                Write-CheckMessage -Level 'ERROR' -Code 'SKILL_METADATA' -Message ".agents/skills/$skillName 的 agents/openai.yaml 缺少有效的 $field。"
+                continue
+            }
+
+            $fieldValue = $fieldMatch.Groups['value'].Value
+            if ($field -eq 'default_prompt') {
+                $defaultPrompt = $fieldValue
+            }
+
+            if ($fieldValue -notmatch '[\u4e00-\u9fff]') {
+                Write-CheckMessage -Level 'ERROR' -Code 'SKILL_LANGUAGE' -Message ".agents/skills/$skillName 的 $field 必须包含中文界面文案。"
+            }
+
+            if ($field -eq 'short_description' -and ($fieldValue.Length -lt 25 -or $fieldValue.Length -gt 64)) {
+                Write-CheckMessage -Level 'ERROR' -Code 'SKILL_METADATA' -Message ".agents/skills/$skillName 的 short_description 必须为 25 至 64 个字符，当前为 $($fieldValue.Length) 个。"
+            }
+        }
+
+        $invocation = '$' + $skillName
+        if ([string]::IsNullOrWhiteSpace($defaultPrompt) -or -not $defaultPrompt.Contains($invocation)) {
+            Write-CheckMessage -Level 'ERROR' -Code 'SKILL_METADATA' -Message ".agents/skills/$skillName 的 default_prompt 未使用准确调用标记：$invocation"
+        }
+    }
+}
+
 $script:RootFullPath = [System.IO.Path]::GetFullPath($Root)
 if (-not (Test-Path -LiteralPath $script:RootFullPath -PathType Container)) {
     Write-Error "项目根目录不存在：$Root"
@@ -271,8 +324,9 @@ foreach ($file in $markdownFiles) {
 }
 
 Test-AgentChains -AgentFiles $agentFiles
+Test-ProjectSkills -RootPath $script:RootFullPath
 
-Write-Output ('Checked {0} Markdown files: {1} notice(s), {2} warning(s), {3} error(s).' -f $markdownFiles.Count, $script:NoticeCount, $script:WarningCount, $script:ErrorCount)
+Write-Output ('已检查 {0} 个 Markdown 文件：{1} 条提示，{2} 条警告，{3} 个错误。' -f $markdownFiles.Count, $script:NoticeCount, $script:WarningCount, $script:ErrorCount)
 if ($script:ErrorCount -gt 0) {
     exit 1
 }

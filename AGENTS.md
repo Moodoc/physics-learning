@@ -60,6 +60,7 @@
 ## 项目技能
 
 - `.agents/skills/` 中的项目技能必须使用简体中文编写，包括 YAML 中面向代理或用户的描述、`SKILL.md` 正文、参考资料和 UI 展示文案。
+- 每个项目技能都必须包含 `agents/openai.yaml`，其中至少提供与技能一致的中文 `display_name`、`short_description` 和 `default_prompt`；默认提示必须使用准确的 `$skill-name` 调用标记。
 - 技能机器标识、目录名、调用标记、命令和代码标识符保留规范要求的英文形式；新建或更新技能时不得为追求中文化而破坏这些稳定标识。
 
 ## 自动提交

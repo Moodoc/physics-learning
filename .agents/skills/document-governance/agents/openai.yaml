@@ -1,0 +1,4 @@
+interface:
+  display_name: "文档治理"
+  short_description: "审核物理学习项目的文档结构、命名、链接与长度预算，并运行确定性检查"
+  default_prompt: "使用 $document-governance 审核本项目 Markdown 文档的结构、链接与长度预算。"
