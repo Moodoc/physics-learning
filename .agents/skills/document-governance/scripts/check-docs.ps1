@@ -68,6 +68,55 @@ function Get-MarkdownContentOutsideFences {
     return $outside
 }
 
+function Remove-MarkdownInlineCode {
+    param([string]$Line)
+
+    $inlineCodePattern = '(?<!`)(?<ticks>`+)(?!`)(?<code>.*?)(?<!`)\k<ticks>(?!`)'
+    return [regex]::Replace($Line, $inlineCodePattern, '')
+}
+
+function Test-MathDelimiters {
+    param(
+        [string]$RelativePath,
+        [string]$Content
+    )
+
+    $insideFence = $false
+    $fenceCharacter = $null
+    $lineNumber = 0
+
+    foreach ($line in ($Content -split "`r?`n")) {
+        $lineNumber++
+
+        if ($line -match '^\s*(?<marker>`{3,}|~{3,})') {
+            $marker = $Matches['marker']
+            $markerCharacter = $marker.Substring(0, 1)
+            if (-not $insideFence) {
+                $insideFence = $true
+                $fenceCharacter = $markerCharacter
+            }
+            elseif ($markerCharacter -eq $fenceCharacter) {
+                $insideFence = $false
+                $fenceCharacter = $null
+            }
+            continue
+        }
+
+        if ($insideFence) {
+            continue
+        }
+
+        $contentOutsideInlineCode = Remove-MarkdownInlineCode -Line $line
+        $matches = @([regex]::Matches($contentOutsideInlineCode, '\\(?:\(|\)|\[|\])'))
+        if ($matches.Count -eq 0) {
+            continue
+        }
+
+        $tokens = @($matches | ForEach-Object { $_.Value } | Sort-Object -Unique) -join '、'
+        Write-CheckMessage -Level 'ERROR' -Code 'MATH_DELIMITER' -Message ('{0}:{1} 使用禁用的公式分隔符：{2}。行内公式使用 $...$，块级公式使用 $$...$$。' -f $RelativePath, $lineNumber, $tokens)
+    }
+}
+
 function Get-SizeBudget {
     param([string]$RelativePath)
 
@@ -316,6 +365,7 @@ foreach ($file in $markdownFiles) {
     }
 
     Test-RelativeLinks -FilePath $file.FullName -RelativePath $relativePath -Lines $lines
+    Test-MathDelimiters -RelativePath $relativePath -Content $content
     Test-LearningSession -RelativePath $relativePath -Content $content -Lines $lines
 
     if ((Split-Path -Leaf $relativePath) -ieq 'AGENTS.md') {
