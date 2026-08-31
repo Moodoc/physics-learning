@@ -217,6 +217,151 @@ function Test-RelativeLinks {
     }
 }
 
+function ConvertFrom-SessionScalar {
+    param([string]$Value)
+
+    $trimmed = $Value.Trim()
+    if ($trimmed.Length -ge 2) {
+        $first = $trimmed.Substring(0, 1)
+        $last = $trimmed.Substring($trimmed.Length - 1, 1)
+        if (($first -eq '"' -and $last -eq '"') -or ($first -eq "'" -and $last -eq "'")) {
+            return $trimmed.Substring(1, $trimmed.Length - 2)
+        }
+    }
+    return $trimmed
+}
+
+function Test-LearningSessionContent {
+    param(
+        [string]$DisplayPath,
+        [string]$Content,
+        [string[]]$Lines
+    )
+
+    $frontmatterMatch = [regex]::Match($Content, '(?s)\A---[ \t]*\r?\n(?<frontmatter>.*?)\r?\n---[ \t]*(?:\r?\n|\z)')
+    if (-not $frontmatterMatch.Success) {
+        Write-CheckMessage -Level 'ERROR' -Code 'SESSION_FRONTMATTER' -Message "$DisplayPath 缺少可解析的 YAML 前置区。"
+        return
+    }
+
+    $requiredFields = @('date', 'stage_id', 'activity', 'target_ids', 'topic', 'planned_minutes', 'status')
+    $frontmatterLines = @($frontmatterMatch.Groups['frontmatter'].Value -split "`r?`n")
+    $fieldOrder = [System.Collections.Generic.List[string]]::new()
+    $fieldValues = @{}
+    $targetItems = [System.Collections.Generic.List[string]]::new()
+    $activeListField = $null
+    $parseFailed = $false
+
+    for ($lineIndex = 0; $lineIndex -lt $frontmatterLines.Count; $lineIndex++) {
+        $line = $frontmatterLines[$lineIndex]
+        if ([string]::IsNullOrWhiteSpace($line)) {
+            Write-CheckMessage -Level 'ERROR' -Code 'SESSION_FRONTMATTER' -Message ('{0} 前置区第 {1} 行为空；仅允许七个规定字段及 target_ids 列表项。' -f $DisplayPath, ($lineIndex + 1))
+            $parseFailed = $true
+            continue
+        }
+
+        if ($line -match '^(?<field>[A-Za-z_][A-Za-z0-9_]*)[ \t]*:[ \t]*(?<value>.*)$') {
+            $field = $Matches['field']
+            $value = $Matches['value']
+            $activeListField = $null
+
+            if ($field -notin $requiredFields) {
+                Write-CheckMessage -Level 'ERROR' -Code 'SESSION_FRONTMATTER' -Message "$DisplayPath 包含未知前置字段：$field"
+                $parseFailed = $true
+                continue
+            }
+            if ($fieldValues.ContainsKey($field)) {
+                Write-CheckMessage -Level 'ERROR' -Code 'SESSION_FRONTMATTER' -Message "$DisplayPath 包含重复前置字段：$field"
+                $parseFailed = $true
+                continue
+            }
+
+            $fieldOrder.Add($field)
+            $fieldValues[$field] = $value
+            if ($field -eq 'target_ids' -and [string]::IsNullOrWhiteSpace($value)) {
+                $activeListField = 'target_ids'
+            }
+            continue
+        }
+
+        if ($line -match '^[ \t]+-[ \t]+(?<value>\S.*)$' -and $activeListField -eq 'target_ids') {
+            $targetItems.Add((ConvertFrom-SessionScalar -Value $Matches['value']))
+            continue
+        }
+
+        Write-CheckMessage -Level 'ERROR' -Code 'SESSION_FRONTMATTER' -Message ('{0} 前置区第 {1} 行无法解析：{2}' -f $DisplayPath, ($lineIndex + 1), $line.Trim())
+        $parseFailed = $true
+    }
+
+    foreach ($field in $requiredFields) {
+        if (-not $fieldValues.ContainsKey($field)) {
+            Write-CheckMessage -Level 'ERROR' -Code 'SESSION_FRONTMATTER' -Message "$DisplayPath 缺少前置字段：$field"
+            $parseFailed = $true
+        }
+    }
+
+    if (($fieldOrder -join '|') -ne ($requiredFields -join '|')) {
+        Write-CheckMessage -Level 'ERROR' -Code 'SESSION_FRONTMATTER_ORDER' -Message ("$DisplayPath 的前置字段必须依次为：{0}。" -f ($requiredFields -join '、'))
+        $parseFailed = $true
+    }
+
+    if (-not $parseFailed) {
+        $date = ConvertFrom-SessionScalar -Value $fieldValues['date']
+        $stageId = ConvertFrom-SessionScalar -Value $fieldValues['stage_id']
+        $activity = ConvertFrom-SessionScalar -Value $fieldValues['activity']
+        $topic = ConvertFrom-SessionScalar -Value $fieldValues['topic']
+        $plannedMinutes = ConvertFrom-SessionScalar -Value $fieldValues['planned_minutes']
+        $status = ConvertFrom-SessionScalar -Value $fieldValues['status']
+
+        if ($date -notmatch '^\d{4}-\d{2}-\d{2}$') {
+            Write-CheckMessage -Level 'ERROR' -Code 'SESSION_FRONTMATTER_VALUE' -Message "$DisplayPath 的 date 必须使用 YYYY-MM-DD。"
+        }
+        else {
+            $parsedDate = [datetime]::MinValue
+            if (-not [datetime]::TryParseExact($date, 'yyyy-MM-dd', [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::None, [ref]$parsedDate)) {
+                Write-CheckMessage -Level 'ERROR' -Code 'SESSION_FRONTMATTER_VALUE' -Message "$DisplayPath 的 date 不是有效日期：$date"
+            }
+        }
+        if ($stageId -notmatch '^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$') {
+            Write-CheckMessage -Level 'ERROR' -Code 'SESSION_FRONTMATTER_VALUE' -Message "$DisplayPath 的 stage_id 不是稳定英文标识：$stageId"
+        }
+        if ($activity -notin @('diagnostic', 'learning', 'assessment', 'project')) {
+            Write-CheckMessage -Level 'ERROR' -Code 'SESSION_FRONTMATTER_VALUE' -Message "$DisplayPath 使用非法 activity：$activity"
+        }
+        if ([string]::IsNullOrWhiteSpace($topic) -or $topic -match '^[\[\{].*[\]\}]$') {
+            Write-CheckMessage -Level 'ERROR' -Code 'SESSION_FRONTMATTER_VALUE' -Message "$DisplayPath 的 topic 必须是非空标量。"
+        }
+        $minutesValue = 0
+        if (-not [int]::TryParse($plannedMinutes, [ref]$minutesValue) -or $minutesValue -le 0) {
+            Write-CheckMessage -Level 'ERROR' -Code 'SESSION_FRONTMATTER_VALUE' -Message "$DisplayPath 的 planned_minutes 必须是正整数：$plannedMinutes"
+        }
+        if ($status -notin @('planned', 'submitted', 'reviewed')) {
+            Write-CheckMessage -Level 'ERROR' -Code 'SESSION_FRONTMATTER_VALUE' -Message "$DisplayPath 使用非法 status：$status"
+        }
+
+        $targetValue = $fieldValues['target_ids'].Trim()
+        if (-not [string]::IsNullOrWhiteSpace($targetValue)) {
+            if ($targetValue -match '^\[(?<items>.*)\]$') {
+                foreach ($item in ($Matches['items'] -split ',')) {
+                    $targetItems.Add((ConvertFrom-SessionScalar -Value $item))
+                }
+            }
+            else {
+                Write-CheckMessage -Level 'ERROR' -Code 'SESSION_FRONTMATTER_VALUE' -Message "$DisplayPath 的 target_ids 必须使用非空 YAML 列表。"
+            }
+        }
+        if ($targetItems.Count -eq 0 -or @($targetItems | Where-Object { [string]::IsNullOrWhiteSpace($_) }).Count -gt 0) {
+            Write-CheckMessage -Level 'ERROR' -Code 'SESSION_FRONTMATTER_VALUE' -Message "$DisplayPath 的 target_ids 至少包含一个非空目标 ID。"
+        }
+    }
+
+    $requiredHeadings = @('本次目标', '前置检查', '学习内容', '练习', '用户结果', 'AI 批阅', '下一步', '相关项目与资料')
+    $headings = @($Lines | Where-Object { $_ -match '^##\s+' } | ForEach-Object { ($_ -replace '^##\s+', '').Trim() })
+    if (($headings -join '|') -ne ($requiredHeadings -join '|')) {
+        Write-CheckMessage -Level 'ERROR' -Code 'SESSION_HEADINGS' -Message ("$DisplayPath 的二级章节必须恰好依次为：{0}；实际为：{1}。" -f ($requiredHeadings -join '、'), ($headings -join '、'))
+    }
+}
+
 function Test-LearningSession {
     param(
         [string]$RelativePath,
@@ -224,33 +369,19 @@ function Test-LearningSession {
         [string[]]$Lines
     )
 
-    if ($RelativePath -notmatch '^sessions/\d{4}/\d{2}/.+\.md$') {
+    if ($RelativePath -match '^sessions/\d{4}/\d{2}/.+\.md$') {
+        Test-LearningSessionContent -DisplayPath $RelativePath -Content $Content -Lines $Lines
         return
     }
 
-    if ($Content -notmatch '(?s)\A---\s*\r?\n(?<frontmatter>.*?)\r?\n---(?:\r?\n|\z)') {
-        Write-CheckMessage -Level 'ERROR' -Code 'SESSION' -Message "$RelativePath 缺少有效的 YAML 前置区。"
-        return
-    }
-
-    $frontmatter = $Matches['frontmatter']
-    foreach ($field in @('date', 'stage', 'topic', 'planned_minutes', 'status')) {
-        if ($frontmatter -notmatch "(?m)^$([regex]::Escape($field))\s*:\s*\S.*$") {
-            Write-CheckMessage -Level 'ERROR' -Code 'SESSION' -Message "$RelativePath 缺少前置字段：$field"
-        }
-    }
-
-    if ($frontmatter -match '(?m)^status\s*:\s*["'']?(?<status>[^\s"'']+)["'']?\s*$') {
-        if ($Matches['status'] -notin @('planned', 'submitted', 'reviewed')) {
-            Write-CheckMessage -Level 'ERROR' -Code 'SESSION' -Message "$RelativePath 使用非法状态：$($Matches['status'])"
-        }
-    }
-
-    $headings = @($Lines | Where-Object { $_ -match '^##\s+' } | ForEach-Object { ($_ -replace '^##\s+', '').Trim() })
-    foreach ($requiredHeading in @('本次目标', '前置检查', '学习内容', '练习', '用户结果', 'AI 批阅', '下一步', '相关项目与资料')) {
-        if ($requiredHeading -notin $headings) {
-            Write-CheckMessage -Level 'ERROR' -Code 'SESSION' -Message "$RelativePath 缺少二级章节：$requiredHeading"
-        }
+    if ($RelativePath -ieq 'templates/learning-session.md') {
+        $instantiated = $Content
+        $instantiated = [regex]::Replace($instantiated, '(?m)^date:\s*.*$', 'date: 2000-01-02')
+        $instantiated = [regex]::Replace($instantiated, '(?m)^stage_id:\s*.*$', 'stage_id: sample-stage')
+        $instantiated = [regex]::Replace($instantiated, '(?m)^\s+-\s+TARGET-01\s*$', '  - SAMPLE-01', 1)
+        $instantiated = [regex]::Replace($instantiated, '(?m)^topic:\s*.*$', 'topic: 模板结构测试')
+        $instantiatedLines = @(Get-MarkdownContentOutsideFences -Content $instantiated)
+        Test-LearningSessionContent -DisplayPath "$RelativePath（实例化后）" -Content $instantiated -Lines $instantiatedLines
     }
 }
 

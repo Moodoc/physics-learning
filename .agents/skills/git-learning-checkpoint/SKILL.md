@@ -1,6 +1,6 @@
 ---
 name: git-learning-checkpoint
-description: 在本物理学习仓库中评估已完成工作，并在形成可审核检查点时创建范围明确的 Git 提交。适用于学习单完成批阅、路线或状态更新完成、项目成果验证通过，或用户要求提交的情况；未完成、验证失败、需要推送或包含无关改动时不使用。
+description: 在本物理学习仓库中评估已完成工作，并在文档与学习生命周期检查通过后创建范围明确的本地 Git 提交。适用于学习单完成批阅、路线或状态更新完成、项目成果验证通过，或用户要求提交的情况；未完成、验证失败、需要推送或包含无关改动时不使用。
 ---
 
 # Git 学习检查点
@@ -13,6 +13,7 @@ description: 在本物理学习仓库中评估已完成工作，并在形成可�
 
 - 当前任务已形成完整且一致的成果。
 - 相关验证已经通过；若仓库没有适用的自动检查，已明确报告该限制。
+- 候选改动涉及 `roadmap/`、`state/`、`sessions/` 或 `checkpoints/stages/` 时，学习生命周期检查已经通过。
 - 能准确识别属于当前任务的文件。
 - 暂存结果不包含秘密、凭据、意外的大文件、缓存或无关改动。
 
@@ -24,7 +25,19 @@ description: 在本物理学习仓库中评估已完成工作，并在形成可�
 
 1. 检查 `git status --short --branch`、未暂存改动、已暂存改动和未跟踪文件。
 2. 准确识别当前任务的文件集合，保留工作区中的所有其他改动。
-3. 执行 `AGENTS.md` 和改动文件类型要求的检查。Markdown 文件需验证本地链接和必需结构；代码需使用仓库已有的格式检查、类型检查、测试或针对性运行命令。
+3. 执行 `AGENTS.md` 和改动文件类型要求的检查。Markdown 文件需运行文档检查：
+
+   ```powershell
+   pwsh -NoProfile -File .agents/skills/document-governance/scripts/check-docs.ps1
+   ```
+
+   候选文件涉及 `roadmap/`、`state/`、`sessions/` 或 `checkpoints/stages/` 时，还必须运行并通过学习生命周期检查：
+
+   ```powershell
+   pwsh -NoProfile -File .agents/skills/learning-lifecycle/scripts/check-lifecycle.ps1
+   ```
+
+   生命周期检查只验证结构和引用一致性，不能替代 `$learning-lifecycle` 对物理正确性、帮助程度、真实迁移和阶段退出的语义审计。其他代码继续使用仓库已有的格式检查、类型检查、测试或针对性运行命令。
 4. 检查候选文件中是否包含凭据、隐私数据、生成缓存或异常大的二进制文件。
 5. 仅使用 `git add -- <paths>` 暂存明确属于任务的路径。存在无关改动时，禁止使用宽泛的暂存命令。
 6. 审核 `git diff --cached --name-status`、`git diff --cached` 和 `git diff --cached --check`。暂存差异为空或包含任务范围外内容时停止提交。
@@ -54,4 +67,4 @@ description: 在本物理学习仓库中评估已完成工作，并在形成可�
 2. 使用 `git status --short --branch` 和 `git show --stat --oneline HEAD` 验证结果。
 3. 报告提交哈希、完整提交信息、已执行的验证，以及剩余未提交路径。
 
-本技能绝不执行 `git push`。
+本技能只创建本地提交，绝不执行 `git push`；推送必须由用户另行明确授权。

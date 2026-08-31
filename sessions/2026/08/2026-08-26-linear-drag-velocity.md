@@ -1,6 +1,11 @@
 ---
 date: 2026-08-26
-stage: 基线诊断后的针对性补缺
+stage_id: motion-change
+activity: learning
+target_ids:
+  - MC-02
+  - MC-04
+  - LS-03
 topic: 线性阻力下的速度演化与数值验证
 planned_minutes: 90
 status: reviewed
@@ -219,7 +224,7 @@ uv run --with numpy --with matplotlib python <你的临时代码路径>
 
 这条命令只为本次运行临时提供包，不修改仓库依赖。若 Matplotlib 暂不可用，可以先提交补全后的代码、NumPy 输出和你预期的图像趋势。
 
-## 专业英语（5 分钟）
+### 专业英语（5 分钟）
 
 - 术语：`air resistance`（空气阻力）、`neglect`（忽略）、`terminal velocity`（终端速度）、`approach`（趋近）、`slope`（斜率）。
 - 短材料：
@@ -228,7 +233,7 @@ uv run --with numpy --with matplotlib python <你的临时代码路径>
 
 - 任务：不用逐字翻译，用中文复述小球的速度和加速度如何变化；说明 `Neglect buoyancy` 删除了哪个物理作用，但没有删除哪些仍在模型中的力。
 
-## 下一步
+### 预定下一步
 
 ### 本次证据与后续安排（5 分钟）
 
@@ -496,8 +501,18 @@ uv run --with numpy --with matplotlib python <你的临时代码路径>
 - `rapidly` 表示“迅速地”；`approaches a terminal velocity` 表示“逐渐接近终端速度”，不表示在有限时间突然达到。
 - `Neglect buoyancy` 表示忽略浮力；模型仍保留向下重力和与运动方向相反的线性空气阻力。
 
+### 逐目标证据分类（迁移登记）
 
-## 批阅后的下一步
+> 本表是 2026-08-31 的结构化迁移登记。`reviewed` 只表示学习单已批阅；下列证据强度按实际帮助程度登记，不等同阶段通过。上方 2026-08-27 批阅中的“已验证基本解析推导”沿用旧词汇，只表示该次学习任务在提示下完成；按当前生命周期契约，`MC-02` 与 `LS-03` 均为 `guided`，尚未无提示独立验证，以本表为准。
+
+| target_id | help | evidence_state | evidence | correction_closure | review_debt |
+|---|---|---|---|---|---|
+| MC-02 | framework | guided | [物理模型与解析推导用户结果](#用户结果) | AI 通过逐步追问、概念反馈和错误指出帮助完成；终端速度算术、$t$ 与 $\tau$、长期加速度极限已修正，但尚无等价任务无提示重做 | 用新的运动情境独立建立受力方程、约束和初值后再升级为 `independent` |
+| MC-04 | clarification | independent | [NumPy 数值验证代码提交与运行结果](#numpy-数值验证代码提交与运行结果)、[项目代码](../../../projects/linear-drag-validation/linear_drag_validation.py) | 任务给出验证目标与代码骨架；学习者独立补全并实际比较两种步长。代码与数值已核验，“曲线平滑度”表述经反馈修正 | 7～14 天后无提示复核，并在不同模型或表示方式中完成真实迁移，才能登记 `robust` |
+| LS-03 | framework | guided | [偏离量与指数解用户结果](#用户结果) | AI 提供偏离量方法框架、分步提示与多次纠错；只形成与该目标相关的标量一阶演化学习证据，不覆盖二阶方程组改写或 `solve_ivp` | 独立完成二阶方程到一阶方程组的改写与数值演化，再做延迟复核和不同物理情境迁移；仅换参数不算迁移 |
+
+
+## 下一步
 
 - 下一份学习单用 Euler 方法直接从受力方程递推速度，并与本次解析解比较步长误差；同时补充 `np.diff`，用两个不同参数组再次解释终端速度和特征时间。
 - 专业英语继续使用短图注，复现本次不稳定词汇，不安排孤立词表背诵。

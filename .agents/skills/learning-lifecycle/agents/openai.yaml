@@ -1,0 +1,6 @@
+interface:
+  display_name: "物理学习全生命周期"
+  short_description: "按阶段契约、证据强度和退出审计推进正式物理学习全过程"
+  default_prompt: "使用 $learning-lifecycle 继续当前正式学习，并根据已有证据选择唯一下一任务。"
+policy:
+  allow_implicit_invocation: true
